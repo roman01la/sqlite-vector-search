@@ -1,5 +1,6 @@
 const { OpenAIApi, Configuration } = require("openai");
 const sqlite3 = require("better-sqlite3");
+const { HierarchicalNSW } = require("hnswlib-node");
 const { Tiktoken } = require("@dqbd/tiktoken/lite");
 const cl100k_base = require("@dqbd/tiktoken/encoders/cl100k_base.json");
 
@@ -55,25 +56,27 @@ async function insert(docs) {
   });
 }
 
+function hnswlibSearch(vectors, knn, query) {
+  const index = new HierarchicalNSW("l2", vectors[0].length);
+  index.initIndex(vectors.length);
+  vectors.forEach((v, idx) => {
+    index.addPoint(v, idx);
+  });
+  return index.searchKnn(query, knn);
+}
+
 async function search(query, prompt, topK = 10) {
   console.log("Searching for relevant documents...");
 
   const [vector] = await createEmbedding([query]);
-  const rows = db
-    .prepare("select * from vectors")
-    .all()
-    .map(({ embedding, document }) => ({
-      document,
-      embedding: decode(embedding),
-    }))
-    .map(({ document, embedding }) => ({
-      document,
-      score: cosineSimilarity(vector, embedding),
-    }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, topK);
 
-  let content = rows.map((r) => r.document).join("\n\n");
+  const entries = db.prepare("select * from vectors").all();
+  const embeddings = entries.map(({ embedding }) => decode(embedding));
+  const documents = hnswlibSearch(embeddings, 3, vector).neighbors.map(
+    (i) => entries[i].document
+  );
+
+  let content = documents.join("\n\n");
   const docs = slice(content, 3000);
 
   if (docs.length > 1) {
@@ -137,7 +140,7 @@ if (query) {
       `Act as a friendly knowledge base search system. Below you are given a question and knowledge base in markdown format.
           Some sections of the knowledge base are in a format of <question> and <answer>, use them to find an answer to a similar question.
           Your reply should only consist of an answer and a suggestion on how to resolve the issue if applicable.
-      
+
         Answer the following question based in provided info: ${query}
         Knowledge base:`
     );

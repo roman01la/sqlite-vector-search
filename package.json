@@ -7,6 +7,7 @@
     "@dqbd/tiktoken": "^1.0.7",
     "better-sqlite3": "^8.3.0",
     "dotenv": "^16.0.3",
+    "hnswlib-node": "^1.4.2",
     "openai": "^3.2.1"
   }
 }
