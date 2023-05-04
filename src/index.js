@@ -6,13 +6,6 @@ const cl100k_base = require("@dqbd/tiktoken/encoders/cl100k_base.json");
 
 require("dotenv").config();
 
-function cosineSimilarity(a, b) {
-  const dotProduct = a.reduce((sum, x, i) => sum + x * b[i], 0);
-  const magnitudeA = Math.sqrt(a.reduce((sum, x) => sum + x * x, 0));
-  const magnitudeB = Math.sqrt(b.reduce((sum, x) => sum + x * x, 0));
-  return dotProduct / (magnitudeA * magnitudeB);
-}
-
 function encode(values) {
   const buffer = Buffer.alloc(values.length * 4);
   for (let i = 0; i < values.length; i++) {
@@ -72,7 +65,7 @@ async function search(query, prompt, topK = 10) {
 
   const entries = db.prepare("select * from vectors").all();
   const embeddings = entries.map(({ embedding }) => decode(embedding));
-  const documents = hnswlibSearch(embeddings, 3, vector).neighbors.map(
+  const documents = hnswlibSearch(embeddings, topK, vector).neighbors.map(
     (i) => entries[i].document
   );
 
