@@ -1,10 +1,10 @@
 # sqlite-vector-search
-A demo of KNN scanning in SQLite
+A demo of vector search with HNSW and SQLite
 
 - Uses OpenAI embeddings
 - Splits documents into chunks based on specified amount of tokens
 - Stores vectors in SQLite as buffers
-- Scans vectors using cosine similarity
+- Uses [HNSW](https://github.com/yoshoku/hnswlib-node) index for similarity search
 - Finds related documents and answers questions via ChatGPT API
 
 ## Setup
